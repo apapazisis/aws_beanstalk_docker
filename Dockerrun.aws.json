@@ -1,0 +1,78 @@
+{
+  "AWSEBDockerrunVersion": 2,
+  "volumes": [
+    {
+      "name": "php-app",
+      "host": {
+        "sourcePath": "/var/app/current/php-app"
+      }
+    },
+    {
+      "name": "php-ini",
+      "host": {
+        "sourcePath": "/var/app/current/php"
+      }    
+    },
+    {
+      "name": "nginx-conf",
+      "host": {
+        "sourcePath": "/var/app/current/nginx"
+      }
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "php",
+      "image": "123456789012.dkr.ecr.eu-central-1.amazonaws.com/laravel:latest",
+      "essential": true,
+      "memory": 128,
+      "mountPoints": [
+        {
+          "sourceVolume": "php-app",
+          "containerPath": "/var/www/html",
+          "readOnly": true
+        },
+        {
+          "sourceVolume": "php-ini",
+          "containerPath": "/usr/local/etc/php",
+          "readOnly": true
+        },
+        {
+          "sourceVolume": "awseb-logs-php",
+          "containerPath": "/var/log/php"
+        }
+      ]
+    },
+    {
+      "name": "nginx",
+      "image": "nginx",
+      "essential": true,
+      "memory": 128,
+      "portMappings": [
+        {
+          "hostPort": 80,
+          "containerPort": 80
+        }
+      ],
+      "links": [
+        "php"
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "php-app",
+          "containerPath": "/var/www/html",
+          "readOnly": true
+        },
+        {
+          "sourceVolume": "awseb-logs-nginx",
+          "containerPath": "/var/log/nginx"
+        },
+        {
+          "sourceVolume": "nginx-conf",
+          "containerPath": "/etc/nginx/conf.d",
+          "readOnly": true
+        }
+      ]
+    }
+  ]
+}
