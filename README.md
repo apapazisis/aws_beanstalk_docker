@@ -62,3 +62,4 @@ pipelines:
               S3_BUCKET: 'nameofs3bucket'
 
 ```
+Create an IAM User with Permissions S3FullAccess and BeanstalkFullAccess and use the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for the deployment process
