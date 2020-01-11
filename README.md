@@ -30,3 +30,35 @@ For Mac users to remove the MACOSX folder from the .zip file. Then you can uploa
   - To push your local created image you need an IAM User with Policy __AmazonEC2ContainerRegistryFullAccess__, install AWS CLI, configure AWS Authorization(command: aws configure)
   
 ### Bitbucket Deployments 
+
+We create a `bitbucket-pipelines.yml` file in the `root` folder of our project.
+1. Build
+2. Deploy
+
+```
+image: atlassian/default-image:2
+
+pipelines:
+  default:
+    - step:
+        name: "Build and Test"
+        script:
+          - echo "Everything is awesome!"
+          - zip -r application.zip *
+        artifacts: 
+          - application.zip
+    - step:
+        name: "Deploy to Production"
+        deployment: production
+        script:
+          - pipe: atlassian/aws-elasticbeanstalk-deploy:0.5.5
+            variables:
+              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+              AWS_DEFAULT_REGION: "eu-central-1"
+              APPLICATION_NAME: "testapp"
+              ENVIRONMENT_NAME: 'phpenv'
+              ZIP_FILE: "application.zip"
+              S3_BUCKET: 'nameofs3bucket'
+
+```
