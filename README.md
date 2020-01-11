@@ -28,3 +28,5 @@ For Mac users to remove the MACOSX folder from the .zip file. Then you can uploa
   Add in the Role __aws-elasticbeanstalk-ec2-role__ the Policy __AmazonEC2ContainerRegistryReadOnly__ so that Dockerrun.aws.json has read access to your ECR Repositories
   
   - To push your local created image you need an IAM User with Policy __AmazonEC2ContainerRegistryFullAccess__, install AWS CLI, configure AWS Authorization(command: aws configure)
+  
+### Bitbucket Deployments 
