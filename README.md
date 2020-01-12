@@ -150,7 +150,7 @@ pipelines:
           deployment: test
           
   tags:
-    v-*:   # On evety commit of Tag  run steps and deploy-production is triggered manually
+    v-*:   # On every commit of Tag  run steps and deploy production is triggered manually
       - step: *composer
       - step: *test
       - step: *build
