@@ -54,8 +54,8 @@ definitions:
         image:
           name: "00000000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
           aws:
-            access-key: $AWS_ECS_ACCESS_KEY_ID
-            secret-key: $AWS_ECS_SECRET_ACCESS_KEY
+            access-key: $AWS_ECR_ACCESS_KEY_ID
+            secret-key: $AWS_ECR_SECRET_ACCESS_KEY
         script: 
           - php -v
           - composer -V
@@ -70,8 +70,8 @@ definitions:
         image:
           name: "00000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
           aws:
-            access-key: $AWS_ECS_ACCESS_KEY_ID
-            secret-key: $AWS_ECS_SECRET_ACCESS_KEY
+            access-key: $AWS_ECR_ACCESS_KEY_ID
+            secret-key: $AWS_ECR_SECRET_ACCESS_KEY
         script: 
           - echo "run test"
           #- cat .env
