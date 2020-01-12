@@ -43,19 +43,19 @@ definitions:
     mysql:
       image: mysql:8.0.17
       environment:
-        MYSQL_DATABASE: mydb
+        MYSQL_DATABASE: database
         MYSQL_USER: secret
         MYSQL_PASSWORD: secret
         MYSQL_ROOT_PASSWORD: root
-    
+
   steps:
     - step: &composer
         name: Composer Install
         image:
-          name: "0000000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
+          name: "00000000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
           aws:
-            access-key: $AWS_REPOS_ACCESS_KEY_ID
-            secret-key: $AWS_REPOS_SECRET_ACCESS_KEY
+            access-key: $AWS_ECS_ACCESS_KEY_ID
+            secret-key: $AWS_ECS_SECRET_ACCESS_KEY
         script: 
           - php -v
           - composer -V
@@ -63,19 +63,22 @@ definitions:
           # - php artisan migrate
         artifacts:
           - vendor/**
+
     
-    - step: &test 
+    - step: &test
         name: Test Application
         image:
-          name: "0000000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
+          name: "00000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
           aws:
-            access-key: $AWS_REPOS_ACCESS_KEY_ID
-            secret-key: $AWS_REPOS_SECRET_ACCESS_KEY
-          script: 
-            - cat .env
-            - vendor/bin/phpunit --testdox
-          services:
-            - mysql
+            access-key: $AWS_ECS_ACCESS_KEY_ID
+            secret-key: $AWS_ECS_SECRET_ACCESS_KEY
+        script: 
+          - echo "run test"
+          #- cat .env
+          #- vendor/bin/phpunit --testdox
+        services:
+          - mysql
+    
     
     - step: &build
         name: Building Application
@@ -84,6 +87,7 @@ definitions:
           - zip -r application.zip *
         artifacts:
           - application.zip
+
 
     - step: &deploy
         name: Deploy to Elasticbeanstalk
@@ -98,16 +102,7 @@ definitions:
               ZIP_FILE: "application.zip"
               S3_BUCKET: "s3bucketname"
               VERSION_LABEL: $(date +%d-%m-%Y_%H:%M:%S)_$BITBUCKET_BUILD_NUMBER
-
-deploy-test: &deploy-test
-  step:
-    <<: *deploy
-    deployment: test
-
-deploy-production: &deploy-production
-  step:
-    <<: *deploy
-    deployment: production
+    
     
 security: &security
   step:
@@ -120,41 +115,49 @@ security: &security
 pipelines:
   custom:
     security: 
-      - <<: *security # Check for Known Security Vulnerabilities in Your Dependencies
+      - step: *security # Check for Known Security Vulnerabilities in Your Dependencies
          
     test: # Pipeline Test to test only a specific branch
       - step: *composer
       - step: *test
           
-    deploy-test: # Pipeline to deploy auf Test Environment. This can run for every selected branch
+    deploy-test2: # Pipeline to deploy auf Test Environment. This can run for every selected branch
       - step: *composer
       - step: *test
       - step: *build
-      - step: *deploy-test
+      - step: 
+          <<: *deploy
+          trigger: manual
+          deployment: test
           
     deploy-productions: # Pipeline to deploy auf Production Environment. This can run for every selected branch
       - step: *composer
       - step: *test
       - step: *build
-      - step: *deploy-production
-          
+      - step:
+          <<: *deploy
+          trigger: manual
+          deployment: production
+      
   branches:
-      test2:   
-        - <<: *composer
-        - <<: *test
-        - <<: *build
-        - step:
-            <<: *deploy-test
-            trigger: manual
+    test:   
+      - step: *composer
+      - step: *test
+      - step: *build
+      - step: 
+          <<: *deploy
+          trigger: manual
+          deployment: test
           
   tags:
     v-*:   # On evety commit of Tag  run steps and deploy-production is triggered manually
       - step: *composer
       - step: *test
       - step: *build
-      - step:
-          <<: *deploy-production
+      - step: 
+          <<: *deploy
           trigger: manual
+          deployment: production
       
 
 ```
