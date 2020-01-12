@@ -38,55 +38,124 @@ We create a `bitbucket-pipelines.yml` file in the `root` folder of our project.
 ```
 image: atlassian/default-image:2
 
+definitions:
+  services:
+    mysql:
+      image: mysql:8.0.17
+      environment:
+        MYSQL_DATABASE: mydb
+        MYSQL_USER: secret
+        MYSQL_PASSWORD: secret
+        MYSQL_ROOT_PASSWORD: root
+    
+  steps:
+    - step: &composer
+        name: Composer Install
+        image:
+          name: "0000000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
+          aws:
+            access-key: $AWS_REPOS_ACCESS_KEY_ID
+            secret-key: $AWS_REPOS_SECRET_ACCESS_KEY
+        script: 
+          - php -v
+          - composer -V
+          - composer install
+          # - php artisan migrate
+        artifacts:
+          - vendor/**
+    
+    - step: &test 
+        name: Test Application
+        image:
+          name: "0000000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
+          aws:
+            access-key: $AWS_REPOS_ACCESS_KEY_ID
+            secret-key: $AWS_REPOS_SECRET_ACCESS_KEY
+          script: 
+            - cat .env
+            - vendor/bin/phpunit --testdox
+          services:
+            - mysql
+    
+    - step: &build
+        name: Building Application
+        image: atlassian/default-image:2
+        script:
+          - zip -r application.zip *
+        artifacts:
+          - application.zip
+
+    - step: &deploy
+        name: Deploy to Elasticbeanstalk
+        script:
+          - pipe: atlassian/aws-elasticbeanstalk-deploy:0.5.5
+            variables:
+              ENVIRONMENT_NAME: $ENVIRONMENT_NAME
+              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+              AWS_DEFAULT_REGION: "eu-central-1"
+              APPLICATION_NAME: "testapp"
+              ZIP_FILE: "application.zip"
+              S3_BUCKET: "s3bucketname"
+              VERSION_LABEL: $(date +%d-%m-%Y_%H:%M:%S)_$BITBUCKET_BUILD_NUMBER
+
+deploy-test: &deploy-test
+  step:
+    <<: *deploy
+    deployment: test
+
+deploy-production: &deploy-production
+  step:
+    <<: *deploy
+    deployment: production
+    
+security: &security
+  step:
+    name: security:checker
+    script:
+      - curl -sS https://get.symfony.com/cli/installer | bash
+      - export PATH="$HOME/.symfony/bin:$PATH"
+      - symfony security:check
+
 pipelines:
+  custom:
+    security: 
+      - <<: *security # Check for Known Security Vulnerabilities in Your Dependencies
+         
+    test: # Pipeline Test to test only a specific branch
+      - step: *composer
+      - step: *test
+          
+    deploy-test: # Pipeline to deploy auf Test Environment. This can run for every selected branch
+      - step: *composer
+      - step: *test
+      - step: *build
+      - step: *deploy-test
+          
+    deploy-productions: # Pipeline to deploy auf Production Environment. This can run for every selected branch
+      - step: *composer
+      - step: *test
+      - step: *build
+      - step: *deploy-production
+          
   branches:
-    test:
-      - step:
-          name: "Build and Test"
-          script:
-            - echo "Create ZIP file"
-            - zip -r application.zip *
-          artifacts: 
-            - application.zip
-      - step:
-          name: "Deploy to Test"
-          deployment: test
-          trigger: manual
-          script:
-            - pipe: atlassian/aws-elasticbeanstalk-deploy:0.5.5
-              variables:
-                AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-                AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-                AWS_DEFAULT_REGION: "eu-central-1"
-                APPLICATION_NAME: "testapp"
-                ENVIRONMENT_NAME: 'newenv'
-                ZIP_FILE: "application.zip"
-                S3_BUCKET: 's3bucketname'
-                VERSION_LABEL: $(date +%d-%m-%Y_%H:%M:%S)_$BITBUCKET_BUILD_NUMBER
+      test2:   
+        - <<: *composer
+        - <<: *test
+        - <<: *build
+        - step:
+            <<: *deploy-test
+            trigger: manual
+          
   tags:
-    v-*:
+    v-*:   # On evety commit of Tag  run steps and deploy-production is triggered manually
+      - step: *composer
+      - step: *test
+      - step: *build
       - step:
-          name: "Build and Test"
-          script:
-            - echo "Create ZIP file"
-            - zip -r application.zip *
-          artifacts: 
-            - application.zip
-      - step:
-          name: "Deploy to Production"
-          deployment: production
+          <<: *deploy-production
           trigger: manual
-          script:
-            - pipe: atlassian/aws-elasticbeanstalk-deploy:0.5.5
-              variables:
-                AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-                AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-                AWS_DEFAULT_REGION: "eu-central-1"
-                APPLICATION_NAME: "testapp"
-                ENVIRONMENT_NAME: 'phpenv'
-                ZIP_FILE: "application.zip"
-                S3_BUCKET: 's3bucketname'
-                VERSION_LABEL: $BITBUCKET_TAG
+      
 
 ```
 Create an IAM User with Permissions S3FullAccess and BeanstalkFullAccess and use the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for the deployment process
