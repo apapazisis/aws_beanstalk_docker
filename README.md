@@ -39,28 +39,54 @@ We create a `bitbucket-pipelines.yml` file in the `root` folder of our project.
 image: atlassian/default-image:2
 
 pipelines:
-  default:
-    - step:
-        name: "Build and Test"
-        script:
-          - echo "Everything is awesome!"
-          - zip -r application.zip *
-        artifacts: 
-          - application.zip
-    - step:
-        name: "Deploy to Production"
-        trigger: manual
-        deployment: production
-        script:
-          - pipe: atlassian/aws-elasticbeanstalk-deploy:0.5.5
-            variables:
-              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
-              AWS_DEFAULT_REGION: "eu-central-1"
-              APPLICATION_NAME: "testapp"
-              ENVIRONMENT_NAME: 'phpenv'
-              ZIP_FILE: "application.zip"
-              S3_BUCKET: 'nameofs3bucket'
+  branches:
+    test:
+      - step:
+          name: "Build and Test"
+          script:
+            - echo "Create ZIP file"
+            - zip -r application.zip *
+          artifacts: 
+            - application.zip
+      - step:
+          name: "Deploy to Test"
+          deployment: test
+          trigger: manual
+          script:
+            - pipe: atlassian/aws-elasticbeanstalk-deploy:0.5.5
+              variables:
+                AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: "eu-central-1"
+                APPLICATION_NAME: "testapp"
+                ENVIRONMENT_NAME: 'newenv'
+                ZIP_FILE: "application.zip"
+                S3_BUCKET: 's3bucketname'
+                VERSION_LABEL: $(date +%d-%m-%Y_%H:%M:%S)_$BITBUCKET_BUILD_NUMBER
+  tags:
+    v-*:
+      - step:
+          name: "Build and Test"
+          script:
+            - echo "Create ZIP file"
+            - zip -r application.zip *
+          artifacts: 
+            - application.zip
+      - step:
+          name: "Deploy to Production"
+          deployment: production
+          trigger: manual
+          script:
+            - pipe: atlassian/aws-elasticbeanstalk-deploy:0.5.5
+              variables:
+                AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: "eu-central-1"
+                APPLICATION_NAME: "testapp"
+                ENVIRONMENT_NAME: 'phpenv'
+                ZIP_FILE: "application.zip"
+                S3_BUCKET: 's3bucketname'
+                VERSION_LABEL: $BITBUCKET_TAG
 
 ```
 Create an IAM User with Permissions S3FullAccess and BeanstalkFullAccess and use the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for the deployment process
