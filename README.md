@@ -121,7 +121,7 @@ pipelines:
       - step: *composer
       - step: *test
           
-    deploy-test2: # Pipeline to deploy auf Test Environment. This can run for every selected branch
+    deploy-test: # Pipeline to deploy auf Test Environment. This can run for every selected branch
       - step: *composer
       - step: *test
       - step: *build
