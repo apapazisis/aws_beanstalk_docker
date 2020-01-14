@@ -121,16 +121,16 @@ pipelines:
       - step: *composer
       - step: *test
           
-    deploy-test: # Pipeline to deploy auf Test Environment. This can run for every selected branch
+    deploy-stage: # Pipeline to deploy auf Test Environment. This can run for every selected branch
       - step: *composer
       - step: *test
       - step: *build
       - step: 
           <<: *deploy
           trigger: manual
-          deployment: test
+          deployment: stage
           
-    deploy-productions: # Pipeline to deploy auf Production Environment. This can run for every selected branch
+    deploy-production: # Pipeline to deploy auf Production Environment. This can run for every selected branch
       - step: *composer
       - step: *test
       - step: *build
@@ -140,14 +140,14 @@ pipelines:
           deployment: production
       
   branches:
-    test:   
+    stage:   
       - step: *composer
       - step: *test
       - step: *build
       - step: 
           <<: *deploy
           trigger: manual
-          deployment: test
+          deployment: stage
           
   tags:
     v-*:   # On every commit of Tag  run steps and deploy production is triggered manually
