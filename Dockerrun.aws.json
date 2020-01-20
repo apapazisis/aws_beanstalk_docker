@@ -29,8 +29,7 @@
       "mountPoints": [
         {
           "sourceVolume": "php-app",
-          "containerPath": "/var/www/html",
-          "readOnly": true
+          "containerPath": "/var/www/html"
         },
         {
           "sourceVolume": "php-ini",
@@ -60,8 +59,7 @@
       "mountPoints": [
         {
           "sourceVolume": "php-app",
-          "containerPath": "/var/www/html",
-          "readOnly": true
+          "containerPath": "/var/www/html"
         },
         {
           "sourceVolume": "awseb-logs-nginx",
