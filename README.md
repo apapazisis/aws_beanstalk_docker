@@ -41,53 +41,63 @@ image: atlassian/default-image:2
 definitions:
   services:
     mysql:
-      image: mysql:8.0.17
+      image: mysql:8.0.16
       environment:
-        MYSQL_DATABASE: database
+        MYSQL_DATABASE: mydb
         MYSQL_USER: secret
         MYSQL_PASSWORD: secret
         MYSQL_ROOT_PASSWORD: root
 
   steps:
     - step: &composer
-        name: Composer Install
+        name: Composer, NPM, Cache
+        caches:
+          - docker
         image:
-          name: "00000000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
+          name: "0000000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
           aws:
             access-key: $AWS_ECR_ACCESS_KEY_ID
             secret-key: $AWS_ECR_SECRET_ACCESS_KEY
-        script: 
+        script:
           - php -v
           - composer -V
+          - php -r "file_exists('.env') || copy('.env.example', '.env');"
           - composer install
-          # - php artisan migrate
+          - npm install
+          - npm run prod
+          - php artisan config:clear
+          - php artisan config:cache
+          - php artisan view:clear
         artifacts:
+          - .env
           - vendor/**
+          - public/css/**
+          - public/fonts/**
+          - public/img/**
+          - public/js/**
+        services:
+          - docker
 
-    
     - step: &test
         name: Test Application
         image:
-          name: "00000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
+          name: "0000000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
           aws:
             access-key: $AWS_ECR_ACCESS_KEY_ID
             secret-key: $AWS_ECR_SECRET_ACCESS_KEY
-        script: 
-          - echo "run test"
-          #- cat .env
-          #- vendor/bin/phpunit --testdox
+        script:
+          - echo "Run Tests"
+          - vendor/bin/phpunit --testdox
         services:
           - mysql
-    
-    
+
     - step: &build
         name: Building Application
         image: atlassian/default-image:2
         script:
-          - zip -r application.zip *
+          - zip -r application.zip * -x .env
         artifacts:
           - application.zip
-
 
     - step: &deploy
         name: Deploy to Elasticbeanstalk
@@ -95,15 +105,32 @@ definitions:
           - pipe: atlassian/aws-elasticbeanstalk-deploy:0.5.5
             variables:
               ENVIRONMENT_NAME: $ENVIRONMENT_NAME
-              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
-              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+              AWS_ACCESS_KEY_ID: $AWS_DEPLOY_ACCESS_KEY_ID
+              AWS_SECRET_ACCESS_KEY: $AWS_DEPLOY_SECRET_ACCESS_KEY
               AWS_DEFAULT_REGION: "eu-central-1"
-              APPLICATION_NAME: "testapp"
+              APPLICATION_NAME: "example.com"
               ZIP_FILE: "application.zip"
-              S3_BUCKET: "s3bucketname"
+              S3_BUCKET: "s3-example-0000000000"
               VERSION_LABEL: $(date +%d-%m-%Y_%H:%M:%S)_$BITBUCKET_BUILD_NUMBER
-    
-    
+          - sed -i "s/DB_CONNECTION=mysql/DB_CONNECTION=$DB_CONNECTION/g" .env
+          - sed -i "s/DB_HOST=127.0.0.1/DB_HOST=$DB_HOST/g" .env
+          - sed -i "s/DB_PORT=3306/DB_PORT=$DB_PORT/g" .env
+          - sed -i "s/DB_DATABASE=homestead/DB_DATABASE=$DB_DATABASE/g" .env
+          - sed -i "s/DB_USERNAME=homestead/DB_USERNAME=$DB_USERNAME/g" .env
+          - sed -i "s/DB_PASSWORD=secret/DB_PASSWORD=$DB_PASSWORD/g" .env
+        artifacts:
+          - .env
+
+    - step: &migrations
+        name: Run Migrations
+        image:
+          name: "0000000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest"
+          aws:
+            access-key: $AWS_ECR_ACCESS_KEY_ID
+            secret-key: $AWS_ECR_SECRET_ACCESS_KEY
+        script:
+          - php artisan migrate --force --no-interaction
+
 security: &security
   step:
     name: security:checker
@@ -114,22 +141,23 @@ security: &security
 
 pipelines:
   custom:
-    security: 
+    security:
       - step: *security # Check for Known Security Vulnerabilities in Your Dependencies
-         
+
     test: # Pipeline Test to test only a specific branch
       - step: *composer
       - step: *test
-          
+
     deploy-stage: # Pipeline to deploy auf Test Environment. This can run for every selected branch
       - step: *composer
       - step: *test
       - step: *build
-      - step: 
+      - step:
           <<: *deploy
-          trigger: manual
           deployment: stage
-          
+      - step:
+          <<: *migrations
+
     deploy-production: # Pipeline to deploy auf Production Environment. This can run for every selected branch
       - step: *composer
       - step: *test
@@ -138,26 +166,31 @@ pipelines:
           <<: *deploy
           trigger: manual
           deployment: production
-      
+      - step:
+          <<: *migrations
+
   branches:
-    stage:   
+    stage:
       - step: *composer
       - step: *test
       - step: *build
-      - step: 
+      - step:
           <<: *deploy
-          trigger: manual
           deployment: stage
-          
+      - step: *migrations
+
   tags:
-    v-*:   # On every commit of Tag  run steps and deploy production is triggered manually
+    v-*:   # On evety commit of Tag  run steps and deploy-production is triggered manually
       - step: *composer
       - step: *test
       - step: *build
-      - step: 
+      - step:
           <<: *deploy
           trigger: manual
           deployment: production
+      - step:
+          <<: *migrations
+
       
 
 ```
