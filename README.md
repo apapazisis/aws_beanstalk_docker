@@ -199,3 +199,5 @@ Create an IAM User with Permissions S3FullAccess and BeanstalkFullAccess and use
 ### Valid IP addresses for Bitbucket Pipelines build environments
 
 https://confluence.atlassian.com/bitbucket/what-are-the-bitbucket-cloud-ip-addresses-i-should-use-to-configure-my-corporate-firewall-343343385.html
+
+Use this IPs to grant access in your MySQL DB from Bitbucket Pipelines
