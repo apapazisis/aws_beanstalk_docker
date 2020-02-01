@@ -201,3 +201,19 @@ Create an IAM User with Permissions S3FullAccess and BeanstalkFullAccess and use
 https://confluence.atlassian.com/bitbucket/what-are-the-bitbucket-cloud-ip-addresses-i-should-use-to-configure-my-corporate-firewall-343343385.html
 
 Use this IPs to grant access in your MySQL DB from Bitbucket Pipelines
+
+### Laravel Worker
+
+```
+[supervisord]
+nodaemon=true
+
+[program:laravel-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/html/artisan queue:work sqs --tries=3 --delay=3
+autostart=true
+autorestart=true
+redirect_stderr=true
+numprocs=1
+stdout_logfile=/var/log/worker.log
+```
