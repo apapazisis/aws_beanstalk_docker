@@ -216,4 +216,9 @@ autorestart=true
 redirect_stderr=true
 numprocs=1
 stdout_logfile=/var/log/worker.log
+
+[program:php-fpm]
+command=/usr/local/sbin/php-fpm
+autostart=true
+autorestart=true
 ```
