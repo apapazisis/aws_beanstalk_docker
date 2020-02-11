@@ -207,10 +207,12 @@ Use this IPs to grant access in your MySQL DB from Bitbucket Pipelines
 ```
 [supervisord]
 nodaemon=true
+logfile=/tmp/supervisord.log
+pidfile = /tmp/supervisord.pid
 
 [program:laravel-worker]
 process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/html/artisan queue:work sqs --tries=3 --delay=3
+command=php /var/www/html/artisan queue:work --tries=3 --delay=3
 autostart=true
 autorestart=true
 redirect_stderr=true
@@ -222,3 +224,7 @@ command=/usr/local/sbin/php-fpm
 autostart=true
 autorestart=true
 ```
+
+### Queues with AWS ElasticCache Redis
+
+ - Redis security group should give inbound access to Elastic Beanstalk environment
