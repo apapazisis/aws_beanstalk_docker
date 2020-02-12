@@ -225,10 +225,13 @@ autostart=true
 autorestart=true
 ```
 
-### Queues with AWS ElasticCache Redis
+### Queues with AWS ElasticCache Redis and SQS
 
  - Redis security group should give inbound access to Elastic Beanstalk environment
 
 | Type     |      Protocol      |  Port Range |
 |----------|:-------------:|------:|
 | Custom TCP Rule |  TCP | 6379 |
+
+ - SQS
+ Create Group and User with SQS Rights to give Access to SQS
