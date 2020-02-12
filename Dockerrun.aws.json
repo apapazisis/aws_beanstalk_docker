@@ -25,7 +25,7 @@
             "name": "php",
             "image": "000000000.dkr.ecr.eu-central-1.amazonaws.com/image:latest",
             "essential": true,
-            "memory": 128,
+            "memoryReservation": 128,
             "mountPoints": [
                 {
                     "sourceVolume": "php-app",
@@ -41,7 +41,7 @@
             "name": "nginx",
             "image": "nginx",
             "essential": true,
-            "memory": 128,
+            "memoryReservation": 128,
             "portMappings": [
                 {
                     "hostPort": 80,
